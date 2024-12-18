@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 import re
 import logging
+from pymongo import MongoClient
 from threading import Timer
 
 # Initialize Flask app
@@ -8,6 +9,11 @@ app = Flask(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+# MongoDB connection
+client = MongoClient("mongodb://localhost:27017/")
+db = client["ticket_reselling"]
+user_collection = db["users"]  # Collection to store user data
 
 # Store user state (basic in-memory)
 user_state = {}
@@ -24,6 +30,14 @@ def clear_user_state(user_id):
     user_state.pop(user_id, None)
     logging.info(f"Cleared state for user_id: {user_id}")
 
+# Save user data to MongoDB
+def save_user_data(user_id):
+    user_data = user_state.get(user_id, {})
+    if user_data:
+        # Insert data into MongoDB
+        user_collection.insert_one(user_data)
+        logging.info(f"User data saved for user_id: {user_id}")
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -39,7 +53,7 @@ def webhook():
 
     if user_id not in user_state:
         user_state[user_id] = {"step": 1}
-        user_state[user_id]["step"] = 2 # Step 1: greeting
+        user_state[user_id]["step"] = 2  # Step 1: greeting
         logging.info(f"New session started for user_id: {user_id}")
 
     # Handling each step based on user state
@@ -95,6 +109,7 @@ def webhook():
             return jsonify({"reply": "That doesn’t look like a valid email. Please try again."})
         user_state[user_id]["email"] = user_message
         user_state[user_id]["step"] = 10  # Step 10: end_sell
+        save_user_data(user_id)  # Save user data to MongoDB
         return jsonify({"reply": "Thank you! We’ll let you know via email or WhatsApp. Click 'Start New Chat' to begin again.", "options": ["Start New Chat"]})
 
     # Buying Flow
