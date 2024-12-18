@@ -157,12 +157,7 @@ document.getElementById('terms-icon').addEventListener('click', (event) => {
 
 // Function to restart the chat
 function startNewChat() {
-    const chatbox = document.getElementById('chatbox');
-    
-    // Clear the chat content and display the greeting again
+    const chatbox = document.getElementById('chatbox'); // Clear the chat content and display the greeting again
     chatbox.innerHTML = '';
     displayGreeting();
 }
-
-/* Test commit  */
-
